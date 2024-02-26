@@ -341,7 +341,7 @@ class OIDCUserManagerTest
             new IDTokenClaimsSet(issuer, subject, Collections.emptyList(), new Date(), new Date());
         UserInfo userInfo = new UserInfo(subject);
 
-        userInfo.setClaim("groupclaim", Arrays.asList("pgroup1", "pgroup2"));
+        idToken.setClaim("groupclaim", Arrays.asList("pgroup1", "pgroup2"));
 
         String userFullName = "XWiki.issuer-subject";
 
@@ -530,6 +530,7 @@ class OIDCUserManagerTest
         UserInfo userInfo = new UserInfo(subject);
 
         userInfo.setClaim("groupclaim", Arrays.asList("pgroup1", "pgroup3"));
+        idToken.setClaim("groupclaim", Arrays.asList("pgroup4", "pgroup5"));
 
         Principal principal = this.manager.updateUser(idToken, userInfo, new BearerAccessToken());
 
@@ -552,7 +553,7 @@ class OIDCUserManagerTest
             new IDTokenClaimsSet(issuer, subject, Collections.emptyList(), new Date(), new Date());
         UserInfo userInfo = new UserInfo(subject);
 
-        userInfo.setClaim("groupclaim", Arrays.asList("pgroup2", "pgroup3"));
+        idToken.setClaim("groupclaim", Arrays.asList("pgroup2", "pgroup3"));
 
         assertThrows(OIDCException.class, () -> this.manager.updateUser(idToken, userInfo, new BearerAccessToken()));
     }
@@ -620,7 +621,7 @@ class OIDCUserManagerTest
         BearerAccessToken accessToken = new BearerAccessToken();
 
         this.oldcore.getConfigurationSource().setProperty(OIDCClientConfiguration.PROP_GROUPS_CLAIM, "groupclaim");
-        userInfo.setClaim("groupclaim", Arrays.asList("pgroup1", "pgroup3"));
+        idToken.setClaim("groupclaim", Arrays.asList("pgroup1", "pgroup3"));
 
         assertNotNull(this.manager.updateUser(idToken, userInfo, accessToken));
 

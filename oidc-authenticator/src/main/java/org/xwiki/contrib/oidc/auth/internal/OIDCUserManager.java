@@ -202,23 +202,9 @@ public class OIDCUserManager
         return updateUser(idToken, userInfo, accessToken);
     }
 
-    private void checkAllowedGroups(UserInfo userInfo) throws OIDCException
+    private void checkAllowedGroups(UserInfo userInfo, IDTokenClaimsSet idToken) throws OIDCException
     {
-        List<String> providerGroups = null;
-        Object providerGroupsObj = getClaim(this.configuration.getGroupClaim(), userInfo);
-        if (this.configuration.getGroupSeparator()!=null) {
-            providerGroups = Arrays.asList(StringUtils.split(providerGroupsObj.toString(), this.configuration.getGroupSeparator()));
-        } else {
-            providerGroups = (List<String>)providerGroupsObj;
-        }
-        String groupPrefix = this.configuration.getGroupPrefix();
-        if (!StringUtils.isEmpty(groupPrefix)) {
-            providerGroups = providerGroups.stream()
-                    .filter(item -> item.startsWith(groupPrefix))
-                    .map(item -> StringUtils.replace(item, groupPrefix, ""))
-                    .collect(Collectors.toList());
-        }
-        
+        List<String> providerGroups = getProviderGroups(userInfo, idToken);
         if (providerGroups != null) {
             // Check allowed groups
             List<String> allowedGroups = this.configuration.getAllowedGroups();
@@ -243,6 +229,35 @@ public class OIDCUserManager
         }
     }
 
+    private List<String> getProviderGroups(UserInfo userInfo, IDTokenClaimsSet idToken) {
+        String groupClaim = this.configuration.getGroupClaim();
+
+        this.logger.debug("Getting groups sent by the provider associated with claim [{}]", groupClaim);
+
+        List<String> providerGroups = null;
+        Object providerGroupsObj = getClaim(groupClaim, userInfo);
+
+        if (providerGroupsObj == null) {
+            // Group claim not found in userInfo Token; try idToken (Azure AD, AWS Cognito ...)
+            this.logger.debug("Groups claim not found in userInfo token. Trying idToken");
+            providerGroupsObj = getClaim(groupClaim, idToken);
+        }
+
+        if (this.configuration.getGroupSeparator()!=null) {
+            providerGroups = Arrays.asList(StringUtils.split(providerGroupsObj.toString(), this.configuration.getGroupSeparator()));
+        } else {
+            providerGroups = (List<String>) providerGroupsObj;
+        }
+        String groupPrefix = this.configuration.getGroupPrefix();
+        if (!StringUtils.isEmpty(groupPrefix)) {
+            providerGroups = providerGroups.stream()
+                    .filter(item -> item.startsWith(groupPrefix))
+                    .map(item -> StringUtils.replace(item, groupPrefix, ""))
+                    .collect(Collectors.toList());
+        }
+
+        return providerGroups;
+    }
     private <T> T getClaim(String claim, ClaimsSet claims)
     {
         T value = (T) claims.getClaim(claim);
@@ -286,7 +301,7 @@ public class OIDCUserManager
         throws XWikiException, QueryException, OIDCException
     {
         // Check allowed/forbidden groups
-        checkAllowedGroups(userInfo);
+        checkAllowedGroups(userInfo, idToken);
 
         Map<String, String> formatMap = createFormatMap(idToken, userInfo);
         // Change the default StringSubstitutor behavior to produce an empty String instead of an unresolved pattern by
@@ -435,9 +450,7 @@ public class OIDCUserManager
         }
 
         // Sync user groups with the provider
-        if (this.configuration.isGroupSync()) {
-            userUpdated |= updateGroupMembership(idToken, userInfo, userDocument, xcontext);
-        }
+        userUpdated |= updateGroupMembership(idToken, userInfo, userDocument, xcontext);
 
         // Notify
         if (userUpdated) {
@@ -466,32 +479,7 @@ public class OIDCUserManager
     private boolean updateGroupMembership(IDTokenClaimsSet idToken, UserInfo userInfo, XWikiDocument userDocument, XWikiContext xcontext)
         throws XWikiException
     {
-        String groupClaim = this.configuration.getGroupClaim();
-
-        this.logger.debug("Getting groups sent by the provider associated with claim [{}]", groupClaim);
-
-        List<String> providerGroups = null;
-        Object providerGroupsObj = getClaim(groupClaim, userInfo);
-        
-        if (providerGroupsObj == null) {
-            // Group claim not found in userInfo Token; try idToken (Azure AD)
-            this.logger.debug("Groups claim not found in userInfo token. Trying idToken");
-            providerGroupsObj = getClaim(groupClaim, idToken);
-        }
-        
-        if (this.configuration.getGroupSeparator()!=null) {
-            providerGroups = Arrays.asList(StringUtils.split(providerGroupsObj.toString(), this.configuration.getGroupSeparator()));
-        } else {
-            providerGroups = (List<String>)providerGroupsObj;
-        }
-        String groupPrefix = this.configuration.getGroupPrefix();
-        if (!StringUtils.isEmpty(groupPrefix)) {
-            providerGroups = providerGroups.stream()
-                    .filter(item -> item.startsWith(groupPrefix))
-                    .map(item -> StringUtils.replace(item, groupPrefix, ""))
-                    .collect(Collectors.toList());
-        }
-        
+        List<String> providerGroups = getProviderGroups(userInfo, idToken);
         if (providerGroups != null) {
             this.logger.debug("The provider sent the following groups: {}", providerGroups);
 

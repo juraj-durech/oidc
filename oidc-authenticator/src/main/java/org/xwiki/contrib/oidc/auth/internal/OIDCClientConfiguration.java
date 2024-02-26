@@ -946,18 +946,6 @@ public class OIDCClientConfiguration extends OIDCConfiguration
     }
 
     /**
-     * @return true if groups should be synchronized (in which case if the provider does not answer to the group claim
-     *         it means the user does not belong to any group)
-     * @since 1.14
-     */
-    public boolean isGroupSync()
-    {
-        String groupClaim = getGroupClaim();
-
-        return getUserInfoClaims().contains(groupClaim);
-    }
-
-    /**
      * @return the OIDC provider specified by the client for the authentication.
      */
     private String getOIDCProviderName()
