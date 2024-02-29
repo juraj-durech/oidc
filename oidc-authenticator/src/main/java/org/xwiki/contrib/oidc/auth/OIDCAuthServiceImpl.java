@@ -202,7 +202,7 @@ public class OIDCAuthServiceImpl extends XWikiAuthServiceImpl
         throws UnsupportedEncodingException
     {
         String redirectBack = HttpServletUtils.getSourceURL(context.getRequest()).toExternalForm();
-
+        if (redirectBack.startsWith("https://")) redirectBack = redirectBack.replace(":80","");
         // Append the SRID to the redirect URL
         if (StringUtils.isNotBlank(savedRequestId)) {
             StringBuilder builder = new StringBuilder(redirectBack);
@@ -217,7 +217,6 @@ public class OIDCAuthServiceImpl extends XWikiAuthServiceImpl
 
             redirectBack = builder.toString();
         }
-
         return redirectBack;
     }
 

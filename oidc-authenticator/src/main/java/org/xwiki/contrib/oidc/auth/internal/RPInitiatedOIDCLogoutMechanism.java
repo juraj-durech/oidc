@@ -28,6 +28,9 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Provider;
 
+import com.nimbusds.oauth2.sdk.ResponseType;
+import com.nimbusds.oauth2.sdk.id.State;
+import com.xpn.xwiki.web.XWikiRequest;
 import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 import org.xwiki.component.annotation.Component;
@@ -98,8 +101,17 @@ public class RPInitiatedOIDCLogoutMechanism implements OIDCLogoutMechanism
 
                 URIBuilder logoutBuilder = new URIBuilder(logoutURI);
                 logoutBuilder.addParameter("client_id", this.clientID.getValue());
-                logoutBuilder.addParameter("logout_uri", redirectURI);
-                logoutBuilder.addParameter("post_logout_redirect_uri", redirectURI);
+//                logoutBuilder.addParameter("logout_uri", redirectURI);
+//                logoutBuilder.addParameter("post_logout_redirect_uri", redirectURI);
+
+                logoutBuilder.addParameter("redirect_uri", redirectURI);
+                State state = new State();
+                XWikiRequest request = context.getRequest();
+                request.getSession().setAttribute(OIDCClientConfiguration.PROP_STATE, state.getValue());
+                logoutBuilder.addParameter("state", state.getValue());
+                logoutBuilder.addParameter("scope", this.clientConfiguration.getScope().toString());
+                ResponseType responseType = ResponseType.getDefault();
+                logoutBuilder.addParameter("response_type", responseType.toString());
 
                 context.getResponse().sendRedirect(logoutBuilder.build().toString());
                 context.setFinished(true);
